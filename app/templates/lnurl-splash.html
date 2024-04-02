@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Zap {{ username.title() }}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <link rel=icon type=image/svg+xml
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡️</text></svg>">
+    <meta name=lightning content="lnurlp:{{ lnurl_address }}">
+    <meta name=description content="{{ meta_description }}">
+    <meta name=author content="{{ meta_author }}">
+    <style type="text/css">
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            color: black;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica', sans-serif;
+            font-size: 9px;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        @media screen and (min-width: 720px) {
+
+            html,
+            body {
+                font-size: 11px;
+            }
+        }
+
+        html {
+            width: 100vw;
+            min-height: 100vh;
+            min-height: calc(100vh - env(safe-area-inset-bottom));
+            min-width: 320px;
+        }
+
+        body {
+            background-color: #FF8000;
+            background: linear-gradient(100deg, rgba(255, 128, 0, 1) 0%, rgba(160, 0, 255, 1) 100%);
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+
+        a {
+            color: inherit;
+        }
+
+        a:visited {
+            color: inherit;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: bold;
+            line-height: 1.2em;
+        }
+
+        h1.smaller {
+            font-size: 1.7em;
+        }
+
+        .center {
+            margin: 4em auto;
+            padding: 0 2em;
+            max-width: 40em;
+            text-align: center;
+        }
+
+        .card {
+            color: #4d2b0a;
+            background: white;
+            border: 4px solid wheat;
+            padding-top: 2em;
+            margin-bottom: 8em;
+            border-radius: 2em;
+            line-height: 1.6em;
+            box-shadow: rgb(50 50 93 / 80%) 0px 30px 60px -12px, rgb(0 0 0 / 100%) 0px 18px 36px -18px;
+            animation-duration: 7s;
+            animation-name: cube-rotate;
+            animation-iteration-count: infinite;
+            animation-direction: alternate;
+            animation-timing-function: ease-in-out;
+        }
+
+        @keyframes cube-rotate {
+            from {
+                transform: perspective(600px) rotate3d(0.6, 0.1, 0.1, 5deg);
+            }
+
+            to {
+                transform: perspective(600px) rotate3d(0.6, -0.1, -0.1, 5deg);
+            }
+        }
+
+        .card .content {
+            padding: 0 2em;
+        }
+
+        .card svg {
+            width: 100%;
+        }
+
+        .card img.profile {
+            background: #fff4df;
+            display: inline-block;
+            width: 8rem;
+            height: 8rem;
+            border-radius: 50%;
+            border: 2px solid wheat;
+            box-shadow: rgb(50 50 93 / 30%) 0px 30px 60px -12px, rgb(0 0 0 / 40%) 0px 18px 36px -18px;
+        }
+
+        .card .aside {
+            background: #fffaf2;
+            color: #68523c;
+            border-top: 2px solid wheat;
+            border-bottom-left-radius: inherit;
+            border-bottom-right-radius: inherit;
+            padding: 2em;
+            font-family: monospace;
+            word-wrap: break-word;
+        }
+
+        .card .aside.pull-up {
+            margin-top: -4rem;
+            padding-top: 5rem;
+        }
+
+        .credit {
+            font-size: 0.9em;
+            font-weight: bold;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="center">
+        <div class="card">
+            <div class="content">
+                {% if smaller_heading %}
+                <h1 class="smaller">⚡️ Zap {{ username.title()}} ⚡️</h1>
+                {% else %}
+                <h1>⚡️&nbsp;&nbsp;Zap&nbsp;{{ username.title()}}&nbsp;&nbsp;⚡️</h1>
+                {% endif %}
+            </div>
+            <a href="lightning:{{ encoded_lnurl }}">
+                {{ lnurl_qr | safe }}
+            </a>
+            {% if profile_image_url -%}
+            <img src="{{ profile_image_url }}" class="profile">
+            {%- endif %}
+            <div class="content aside {% if profile_image_url -%}pull-up{%- endif %}">
+                <strong>Lightning Address</strong><br>
+                <a href="lnurlp:{{ lnurl_address }}">{{ lnurl_address }}</a><br><br>
+                {% if nostr_address -%}
+                <strong>Nostr</strong><br>
+                <a href="nostr:{{ nostr_address }}">{{ nostr_address }}</a><br>
+                {%- endif %}
+            </div>
+        </div>
+        <div class="credit">Powered by <a href="https://github.com/ACINQ/phoenixd/" target=_blank>phoenixd </a> and <a
+                href="https://github.com/AngusP/phoenixd-lnurl/" target=_blank>phoenixd-lnurl</a></div>
+    </div>
+</body>
+
+</html>

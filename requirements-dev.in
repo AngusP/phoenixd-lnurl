@@ -1,0 +1,10 @@
+-r requirements.in
+-c requirements.txt
+
+httpx
+ipython
+mypy
+pytest
+pytest-asyncio
+ruff
+types-qrcode

@@ -1,0 +1,10 @@
+aiohttp
+fastapi[all]
+gunicorn
+jinja2
+lnurl
+loguru
+pydantic[dotenv]==1.10.14  # NOTE stuck on <2.0.0 because of lnurl compat issue
+qrcode[pil]
+uvicorn[standard]
+yarl
