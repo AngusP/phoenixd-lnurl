@@ -1,0 +1,42 @@
+services:
+  traefik:
+    image: "traefik:latest"
+    container_name: "traefik"
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.selfhostedservices.acme.tlschallenge=true"
+      - "--certificatesresolvers.selfhostedservices.acme.email=example@example.com"
+      - "--certificatesresolvers.selfhostedservices.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - target: 80
+        published: 80
+        mode: host
+      - target: 443
+        published: 443
+        mode: host
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  phoenixd-lnurl:
+    container_name: phoenixd-lnurl
+    image: ghcr.io/angusp/phoenixd-lnurl:latest
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.phoenixd-lnurl.rule=Host(`example.com`) && Path(`/lnurl`) || Host(`example.com`) && PathPrefix(`/lnurlp`) || Host(`example.com`) && PathPrefix(`/.well-known/lnurlp`)"
+      - "traefik.http.services.phoenixd-lnurl.loadbalancer.server.port=8000"
+      - "traefik.http.routers.phoenixd-lnurl.entrypoints=websecure"
+      - "traefik.http.routers.phoenixd-lnurl.tls.certresolver=selfhostedservices"
+
+  phoenixd:
+    image: ghcr.io/sethforprivacy/phoenixd:latest
+    container_name: phoenixd
+    volumes:
+      - ./phoenixd-data:/phoenix/.phoenix
+    command: --agree-to-terms-of-service --http-bind-ip 0.0.0.0
