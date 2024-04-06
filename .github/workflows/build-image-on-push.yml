@@ -27,20 +27,31 @@ jobs:
       - 
         name: Checkout repository
         uses: actions/checkout@v4
+      -
+        name: Set lower case owner name
+        run: |
+          echo "REPOSITORY_OWNER_LC=${OWNER@L}" >>${GITHUB_ENV}
+        env:
+          OWNER: '${{ github.repository_owner }}'
+      -
+        name: Create .env config file
+        run: |
+          cp phoenixd-lnurl.env.example phoenixd-lnurl.env
       - 
         name: Build x86_64 image
         id: docker_build_amd64
         uses: docker/build-push-action@v5.2.0
         with:
+          context: '.'
           push: false
           load: true
           platforms: linux/amd64
-          tags: phoenixd:test
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/phoenixd-lnurl:latest
+          tags: phoenixd-lnurl:test
+          cache-from: type=registry,ref=ghcr.io/${{ env.REPOSITORY_OWNER_LC }}/phoenixd-lnurl:latest
       - 
         name: Test-run x86_64 image
         run: |
-          docker run --rm phoenixd:test &
+          docker run --rm phoenixd-lnurl:test &
           PID=$!
           sleep 10
           kill -SIGINT $PID # this will return a non-zero exit code if the container dies early on
@@ -49,8 +60,9 @@ jobs:
         id: docker_build_arm64
         uses: docker/build-push-action@v5.3.0
         with:
+          context: '.'
           push: false
           load: true
           platforms: linux/arm64
-          tags: phoenixd:test
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/phoenixd-lnurl:latest
+          tags: phoenixd-lnurl:test
+          cache-from: type=registry,ref=ghcr.io/${{ env.REPOSITORY_OWNER_LC }}/phoenixd-lnurl:latest
