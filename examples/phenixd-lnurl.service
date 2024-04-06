@@ -1,0 +1,16 @@
+# NOTE you will need to change User= and Group=
+# This assumes you have installed to `/var/www/phoenixd-lnurl`.
+
+[Unit]
+Description=phoenixd-lnurlp
+After=network.target
+
+[Service]
+User=<username>
+Group=<group>
+WorkingDirectory=/var/www/phoenixd-lnurl/src
+Environment="PATH=/var/www/phoenixd-lnurl/env/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin"
+ExecStart=/var/www/phoenixd-lnurl/run.sh
+
+[Install]
+WantedBy=multi-user.target

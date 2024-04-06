@@ -1,5 +1,7 @@
 services:
   traefik:
+    platform: linux/amd64
+    # ALT: platform: linux/arm64
     image: "traefik:latest"
     container_name: "traefik"
     restart: unless-stopped
@@ -10,10 +12,12 @@ services:
       - "--entrypoints.web.address=:80"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      # CHANGEME change `example.com` and email here to match your domain:
       - "--certificatesresolvers.selfhostedservices.acme.tlschallenge=true"
       - "--certificatesresolvers.selfhostedservices.acme.email=example@example.com"
       - "--certificatesresolvers.selfhostedservices.acme.storage=/letsencrypt/acme.json"
     ports:
+      # NOTE for local development, changing `published:` to 8000 and 4430 is easier
       - target: 80
         published: 80
         mode: host
@@ -25,9 +29,17 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
   phoenixd-lnurl:
+    platform: linux/amd64
+    # ALT: platform: linux/arm64
     container_name: phoenixd-lnurl
     image: ghcr.io/angusp/phoenixd-lnurl:latest
+    environment:
+      # CHANGEME See phoenixd-lnurl.env.example for the full list
+      - USERNAME=satoshi
+      - PHOENIXD_URL=http://_:<phoenixd http password from phoenixd-data volume>@172.17.0.1:9740
+      - LNURL_HOSTNAME=example.com
     labels:
+      # CHANGEME set `Host(...)` to match your domain, or to `localhost` for testing:
       - "traefik.enable=true"
       - "traefik.http.routers.phoenixd-lnurl.rule=Host(`example.com`) && Path(`/lnurl`) || Host(`example.com`) && PathPrefix(`/lnurlp`) || Host(`example.com`) && PathPrefix(`/.well-known/lnurlp`)"
       - "traefik.http.services.phoenixd-lnurl.loadbalancer.server.port=8000"
@@ -35,6 +47,7 @@ services:
       - "traefik.http.routers.phoenixd-lnurl.tls.certresolver=selfhostedservices"
 
   phoenixd:
+    platform: linux/amd64
     image: ghcr.io/sethforprivacy/phoenixd:latest
     container_name: phoenixd
     volumes:
