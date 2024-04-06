@@ -36,21 +36,32 @@ jobs:
       - 
         name: Checkout repository
         uses: actions/checkout@v4
+      -
+        name: Set lower case owner name
+        run: |
+          echo "REPOSITORY_OWNER_LC=${OWNER@L}" >>${GITHUB_ENV}
+        env:
+          OWNER: '${{ github.repository_owner }}'
+      -
+        name: Create .env config file
+        run: |
+          cp phoenixd-lnurl.env.example phoenixd-lnurl.env
       - 
         name: Build x86_64 image
         id: docker_build_amd64
         uses: docker/build-push-action@v5.2.0
         with:
+          context: '.'
           push: false
           load: true
           platforms: linux/amd64
-          tags: phoenixd:amd64
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/phoenixd-lnurl:latest
+          tags: phoenixd-lnurl:amd64
+          cache-from: type=registry,ref=ghcr.io/${{ env.REPOSITORY_OWNER_LC }}/phoenixd-lnurl:latest
           cache-to: type=inline
       - 
         name: Test-run x86_64 image
         run: |
-          docker run --rm phoenixd:amd64 &
+          docker run --rm phoenixd-lnurl:amd64 &
           PID=$!
           sleep 10
           kill -SIGINT $PID # this will return a non-zero exit code if the container dies early on
@@ -59,13 +70,14 @@ jobs:
         uses: docker/build-push-action@v5.2.0
         id: docker_build_push
         with:
+          context: '.'
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/${{ github.repository_owner }}/phoenixd-lnurl:latest
+            ghcr.io/${{ env.REPOSITORY_OWNER_LC }}/phoenixd-lnurl:latest
           labels: |
             org.opencontainers.image.source=${{ github.event.repository.html_url }}
             org.opencontainers.image.created=${{ steps.prep.outputs.created }}
             org.opencontainers.image.revision=${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/phoenixd-lnurl:latest
+          cache-from: type=registry,ref=ghcr.io/${{ env.REPOSITORY_OWNER_LC }}/phoenixd-lnurl:latest
           cache-to: type=inline
