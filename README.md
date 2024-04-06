@@ -37,7 +37,13 @@ A docker container with the latest release is available from `ghcr.io/angusp/pho
 
 Each of the settings in [`phoenixd-lnurl.env`](./phoenixd-lnurl.env.example) can be set using environment variables passed to the container, which is probably the easiest way to set this up.
 
-As you'll also need to run phoenixd and some sort of webserver, so using **Docker compose** is likely easiest way to get all of the required pieces running: [./examples/docker-compose.yml](./examples/docker-compose.yml)
+As you'll also need to run phoenixd and some sort of webserver, so using **Docker compose** is likely easiest way to get all of the required pieces running: [./examples/docker-compose.yml](./examples/docker-compose.yml):
+
+```shell
+docker-compose -f examples/docker-compose.yml up
+```
+
+To run just the phoenixd-lnurl image instead:
 
 ```shell
 # Pull the image:
