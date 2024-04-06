@@ -2,7 +2,7 @@
 # This assumes you have installed to `/var/www/phoenixd-lnurl`.
 
 [Unit]
-Description=phoenixd-lnurlp
+Description=phoenixd-lnurl
 After=network.target
 
 [Service]

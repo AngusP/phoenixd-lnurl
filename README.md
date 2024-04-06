@@ -112,7 +112,7 @@ Some example config is provided to help with this:
 
 * Docker compose: [./examples/docker-compose.yml](./examples/docker-compose.yml)
 * Nginx: [./examples/nginx.conf](./examples/nginx.conf)
-* Systemd: [./examples/pheonixd-lnurl.service](./examples/pheonixd-lnurl.service)
+* Systemd: [./examples/phoenixd-lnurl.service](./examples/phoenixd-lnurl.service)
 
 (**Note**: You may also hit a selinux issue if using nginx, try `setsebool -P httpd_can_network_connect true`)
 
