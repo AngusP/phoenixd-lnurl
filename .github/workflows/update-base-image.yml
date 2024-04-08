@@ -52,7 +52,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/${{ env.REPOSITORY_OWNER_LC }}/${{ github.repository }}:latest
+            ghcr.io/${{ env.REPOSITORY_OWNER_LC }}/phoenixd-lnurl:latest
           labels: |
             org.opencontainers.image.source=${{ github.event.repository.html_url }}
             org.opencontainers.image.created=${{ steps.prep.outputs.created }}
