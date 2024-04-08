@@ -27,8 +27,8 @@ def test_default_settings_load():
     assert settings.is_test is True
     assert settings.debug is False
     assert settings.username == "satoshi"
-    assert settings.lnurl_hostname == "bitcoincore.org"
-    assert settings.phoenixd_url == SecretStr("http://satoshi:hunter2@127.0.0.1:9740")
+    assert settings.lnurl_hostname == "example.com"
+    assert settings.phoenixd_url == SecretStr("http://_:hunter2@127.0.0.1:9740")
     assert settings.user_nostr_address is None
     assert settings.user_profile_image_url is None
     assert settings.log_level == "INFO"
@@ -40,6 +40,20 @@ def test_testenv_settings_derived_properties():
     settings = PhoenixdLNURLSettings(_env_file="test.env")
     assert settings.base_url() == URL("https://127.0.0.1")
     assert settings.lnurl_address() == "satoshi@127.0.0.1"
+    assert (
+        settings.lnurl_address_encoded()
+        == "LNURL1DP68GURN8GHJ7VFJXUHRQT3S9CCJ7MRWW4EXCUP0WDSHGMMNDP5S4SDZXR"
+    )
+    assert settings.lnurl_qr()[:20] == '<svg width="61.5mm" '
+    assert (
+        settings.metadata_for_payrequest()
+        == '[["text/plain", "Zap satoshi some sats"], ["text/identifier", "satoshi@127.0.0.1"]]'
+    )
+    assert (
+        settings.metadata_hash()
+        == "297f16bedbf6942cdc656e19feb46a577a43a87e1f858fd8511ac7144b84f0de"
+    )
+
     assert settings.is_long_username() is False
 
     settings.username = "marttimalmi"

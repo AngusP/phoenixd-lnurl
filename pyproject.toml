@@ -23,7 +23,13 @@ select = [
     # isort
     "I",
 ]
-ignore = ["E501"]
+ignore = [
+    # line-too-long
+    # We're using `ruff` to format the code, so iff the formatter
+    # can't get the line length low enough we'll assume it reads better
+    # as a long line rather than broken up
+    "E501",
+]
 fixable = ["ALL"]
 
 [tool.ruff.lint.flake8-quotes]

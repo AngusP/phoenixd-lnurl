@@ -1,13 +1,9 @@
-import hashlib
-import json
 import math
 import sys
 from contextlib import asynccontextmanager
 from typing import Annotated
 
 import aiohttp
-import lnurl
-import qrcode.image.svg
 from fastapi import (
     APIRouter,
     FastAPI,
@@ -30,7 +26,6 @@ from lnurl import (
 )
 from lnurl.types import MilliSatoshi
 from loguru import logger
-from qrcode.main import QRCode
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .phoenixd_client import (
@@ -52,16 +47,6 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
-def metadata_for_payrequest(settings: PhoenixdLNURLSettings) -> str:
-    return json.dumps(
-        [
-            ["text/plain", f"Zap {settings.username} some sats"],
-            ["text/identifier", settings.lnurl_address()],
-            # ["image/jpeg;base64", "TODO optional"],
-        ]
-    )
-
-
 @router.get(
     path="/lnurl",
     summary="Get a LUD-01 LNURL QR Code and LUD-16 identifier",
@@ -71,27 +56,18 @@ def metadata_for_payrequest(settings: PhoenixdLNURLSettings) -> str:
 )
 async def lnurl_get_lud01(request: Request) -> Response:
     settings: PhoenixdLNURLSettings = request.app.state.settings
-    lnurl_address = settings.lnurl_address()
-    encoded = lnurl.encode(str(settings.base_url() / "lnurlp" / settings.username))
-    lnurl_qr = QRCode(
-        image_factory=qrcode.image.svg.SvgPathFillImage,
-        box_size=15,
-    )
-    lnurl_qr.add_data(encoded)
-    lnurl_qr.make(fit=True)
-    lnurl_qr_image = lnurl_qr.make_image()
     return templates.TemplateResponse(
         name="lnurl-splash.html",
         context={
             "request": request,
             "username": settings.username,
-            "lnurl_address": lnurl_address,
+            "lnurl_address": settings.lnurl_address(),
             "nostr_address": settings.user_nostr_address,
             "profile_image_url": settings.user_profile_image_url,
             "meta_description": settings.lnurl_hostname,
-            "meta_author": lnurl_address,
-            "encoded_lnurl": encoded,
-            "lnurl_qr": lnurl_qr_image.to_string(encoding="unicode"),
+            "meta_author": settings.lnurl_address(),
+            "encoded_lnurl": settings.lnurl_address_encoded(),
+            "lnurl_qr": settings.lnurl_qr(),
             "smaller_heading": settings.is_long_username(),
         },
     )
@@ -135,7 +111,7 @@ async def lnurl_pay_request_lud06(
             callback=str(settings.base_url() / f"lnurlp/{username}/callback"),
             minSendable=settings.min_sats_receivable * 1000,
             maxSendable=settings.max_sats_receivable * 1000,
-            metadata=metadata_for_payrequest(settings),
+            metadata=settings.metadata_for_payrequest(),
         )
     )
 
@@ -178,7 +154,7 @@ async def lnurl_pay_request_lud16(
             callback=str(settings.base_url() / f"lnurlp/{username}/callback"),
             minSendable=settings.min_sats_receivable * 1000,
             maxSendable=settings.max_sats_receivable * 1000,
-            metadata=metadata_for_payrequest(settings),
+            metadata=settings.metadata_for_payrequest(),
         )
     )
 
@@ -252,14 +228,11 @@ async def lnurl_pay_request_callback_lud06(
             ).dict(),
         )
 
-    metadata_hash = hashlib.sha256(
-        metadata_for_payrequest(settings).encode("UTF-8")
-    ).hexdigest()
     invoice: CreateInvoiceResponse = (
         await request.app.state.phoenixd_client.createinvoice(
             amount_sat=amount_sat,
-            description=metadata_hash,
-            external_id=metadata_hash,
+            description=settings.metadata_hash(),
+            external_id=settings.metadata_hash(),
         )
     )
     return LnurlPayActionResponse.parse_obj(
