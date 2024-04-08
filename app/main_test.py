@@ -39,8 +39,9 @@ def test_lnurl_pay_request_lud06_happy():
     assert LnurlPayResponse.parse_obj(response.json()) == LnurlPayResponse.parse_obj(
         dict(
             callback="https://127.0.0.1/lnurlp/satoshi/callback",
-            minSendable=1000,
-            maxSendable=500_000,
+            # NOTE these are millisat values
+            minSendable=1_000_000,
+            maxSendable=500_000_000,
             metadata=json.dumps(
                 [
                     ["text/plain", "Zap satoshi some sats"],
@@ -81,8 +82,9 @@ def test_lnurl_pay_request_lud16_happy():
     assert LnurlPayResponse.parse_obj(response.json()) == LnurlPayResponse.parse_obj(
         dict(
             callback="https://127.0.0.1/lnurlp/satoshi/callback",
-            minSendable=1000,
-            maxSendable=500_000,
+            # NOTE these are millisat values
+            minSendable=1_000_000,
+            maxSendable=500_000_000,
             metadata=json.dumps(
                 [
                     ["text/plain", "Zap satoshi some sats"],
