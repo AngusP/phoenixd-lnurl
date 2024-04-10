@@ -18,7 +18,7 @@ Note that LNBits will support phoenixd [soon™️](https://github.com/lnbits/ln
 
 ## Compatibility
 
-Developed against `phoenixd version 0.1.3-d805f81`; also note that phoenixd is also new software and future releases may break things.
+Developed against `phoenixd version 0.1.4-04bd430` (and `0.1.3-d805f81`); also note that phoenixd is also new software and future releases may break things.
 
 Currently tested on MacOS and Linux; YMMV on other UNIXes, and on Windows.
 
@@ -62,6 +62,12 @@ docker run -p 8000:8000 \
     -it phoenixd-lnurl:latest
 ```
 
+ * `localhost:8000/lnurl` Tip webpage as in the screenshot above
+ * `localhost:8000/.well-known/lnurlp/<USERNAME>` LNURL payRequest endpoint (LUD-16) for `<USERNAME>@<LNURL_HOSTNAME>`
+ * `localhost:8000/lnurlp/<USERNAME>` LNURL payRequest endpoint (LUD-06)
+ * `localhost:8000/lnurlp/<USERNAME>/callback?amount=<AMOUNT_MSAT>` LNURL payRequest callback (LUD-06 and LUD-16)
+ * **Note** `localhost:8000/` and any other path will give you an `ERROR` -- that's supposed to happen, as it isn't a LNURL that **pheonixd-lnurl** understands 😉
+
 
 ## Non-Docker Setup
 
@@ -90,7 +96,6 @@ chain=testnet
 http-password=hunter2
 http-bind-port=9740
 auto-liquidity=2m
-max-absolute-fee=100000
 ```
 
 For **production** use, you can *just* install and run `phoenixd` for the first time;
@@ -110,6 +115,12 @@ Now you're ready to run:
 # start the phoenixd-lnurl server:
 ./run.sh
 ```
+
+ * `localhost:8000/lnurl` Tip webpage as in the screenshot above
+ * `localhost:8000/.well-known/lnurlp/<USERNAME>` LNURL payRequest endpoint (LUD-16) for `<USERNAME>@<LNURL_HOSTNAME>`
+ * `localhost:8000/lnurlp/<USERNAME>` LNURL payRequest endpoint (LUD-06)
+ * `localhost:8000/lnurlp/<USERNAME>/callback?amount=<AMOUNT_MSAT>` LNURL payRequest callback (LUD-06 and LUD-16)
+ * **Note** `localhost:8000/` and any other path will give you an `ERROR` -- that's supposed to happen, as it isn't a LNURL that **pheonixd-lnurl** understands 😉
 
 To deploy, you probably want something to manage **phoenixd-lnurl** as a service, rather than running it directly.
 Some example config is provided to help with this:
