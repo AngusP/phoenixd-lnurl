@@ -31,6 +31,11 @@ Currently tested on MacOS and Linux; YMMV on other UNIXes, and on Windows.
  * [LUD-06](https://github.com/lnurl/luds/blob/luds/06.md): `payRequest` base spec.
  * [LUD-16](https://github.com/lnurl/luds/blob/luds/16.md): Paying to static internet identifiers *(email-like addresses)*.
 
+### Supported Nostr NIPs:
+
+ * [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) Basic protocol flow description
+ * [NIP-05](https://github.com/nostr-protocol/nips/blob/master/05.md): Mapping Nostr keys to DNS-based internet identifiers (as a NIP-5 server, optional)
+ * [NIP-57](https://github.com/nostr-protocol/nips/blob/master/57.md): Lightning Zaps (receive only)
 
 
 ## Docker Setup
@@ -68,6 +73,8 @@ docker run -p 8000:8000 \
  * `localhost:8000/.well-known/lnurlp/<USERNAME>` LNURL payRequest endpoint (LUD-16) for `<USERNAME>@<LNURL_HOSTNAME>`
  * `localhost:8000/lnurlp/<USERNAME>` LNURL payRequest endpoint (LUD-06)
  * `localhost:8000/lnurlp/<USERNAME>/callback?amount=<AMOUNT_MSAT>` LNURL payRequest callback (LUD-06 and LUD-16)
+ * `localhost:8000/.well-known/nostr.json` (Optional) Nostr NIP-5 server for `<USERNAME>@<LNURL_HOSTNAME>`
+ * **⚠️ INTERNAL ONLY** `localhost:8000/phoenixd-webhook` -- you need to add this to your `~/.phoenixd/phoenix.conf` for Nostr Zaps to work correctly. ‼️ DO NOT make this publicly accessible ‼️
  * **Note** `localhost:8000/` and any other path will give you an `ERROR` -- that's supposed to happen, as it isn't a LNURL that **pheonixd-lnurl** understands 😉
 
 
@@ -98,6 +105,7 @@ chain=testnet
 http-password=hunter2
 http-bind-port=9740
 auto-liquidity=2m
+webhook=http://localhost:8000/phoenixd-webhook
 ```
 
 For **production** use, you can *just* install and run `phoenixd` for the first time;
@@ -122,6 +130,8 @@ Now you're ready to run:
  * `localhost:8000/.well-known/lnurlp/<USERNAME>` LNURL payRequest endpoint (LUD-16) for `<USERNAME>@<LNURL_HOSTNAME>`
  * `localhost:8000/lnurlp/<USERNAME>` LNURL payRequest endpoint (LUD-06)
  * `localhost:8000/lnurlp/<USERNAME>/callback?amount=<AMOUNT_MSAT>` LNURL payRequest callback (LUD-06 and LUD-16)
+ * `localhost:8000/.well-known/nostr.json` (Optional) Nostr NIP-5 server for `<USERNAME>@<LNURL_HOSTNAME>`
+ * **⚠️ INTERNAL ONLY** `localhost:8000/phoenixd-webhook` -- you need to add this to your `~/.phoenixd/phoenix.conf` for Nostr Zaps to work correctly. ‼️ DO NOT make this publicly accessible ‼️
  * **Note** `localhost:8000/` and any other path will give you an `ERROR` -- that's supposed to happen, as it isn't a LNURL that **pheonixd-lnurl** understands 😉
 
 To deploy, you probably want something to manage **phoenixd-lnurl** as a service, rather than running it directly.
@@ -198,13 +208,6 @@ just serve
 - [ ] Also optionally be a Nostr NIP-05 server
 - [ ] Support multiple usernames
 - [ ] (maybe-scope-creep) auto-zap content you interact with/like on Nostr if funds are available
-
-
----
-
-## Tips 😘
-
-[`lnurlp:1f52b@1f52b.xyz`](lnurlp:1f52b@1f52b.xyz) (yes, I am dogfooding) or [tip page](https://1f52b.xyz/lnurl)
 
 
 ---

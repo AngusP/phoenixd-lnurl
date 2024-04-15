@@ -1,3 +1,4 @@
+import json
 import math
 import sys
 from contextlib import asynccontextmanager
@@ -6,6 +7,7 @@ from typing import Annotated
 import aiohttp
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     FastAPI,
     Path,
     Query,
@@ -22,14 +24,22 @@ from fastapi.templating import Jinja2Templates
 from lnurl import (
     LnurlErrorResponse,
     LnurlPayActionResponse,
-    LnurlPayResponse,
 )
 from lnurl.types import MilliSatoshi
 from loguru import logger
+from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from .models import (
+    LnurlPayNostrResponse,
+    NostrNIP5Response,
+    NostrZapReceipt,
+    NostrZapRequest,
+    PhoenixdWebsocketNotification,
+)
 from .phoenixd_client import (
     CreateInvoiceResponse,
+    IncomingPaymentResponse,
     PhoenixdHttpClient,
     PhoenixdMockClient,
 )
@@ -42,9 +52,13 @@ DEFAULT_ERROR_RESPONSE_MODELS: dict[int | str, dict[str, type]] = {
     422: {"model": LnurlErrorResponse},
     500: {"model": LnurlErrorResponse},
 }
+MAX_COMMENT: int = 140
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+
+
+class AppError(ValueError): ...
 
 
 @router.get(
@@ -77,7 +91,7 @@ async def lnurl_get_lud01(request: Request) -> Response:
     path="/lnurlp/{username}",
     summary="payRequest LUD-06",
     operation_id="lnurlp-LUD06",
-    response_model=LnurlPayResponse,
+    response_model=LnurlPayNostrResponse,
     responses=DEFAULT_ERROR_RESPONSE_MODELS,
     response_model_exclude_none=True,
     response_model_exclude_unset=False,
@@ -92,7 +106,7 @@ async def lnurl_pay_request_lud06(
             regex=r"^[a-z0-9-_\.]+$",
         ),
     ],
-) -> LnurlPayResponse | JSONResponse:
+) -> LnurlPayNostrResponse | JSONResponse:
     """
     Implements [LUD-06](https://github.com/lnurl/luds/blob/luds/06.md)
     `payRequest` initial step
@@ -106,12 +120,15 @@ async def lnurl_pay_request_lud06(
     username = settings.username
 
     logger.info("LUD-06 payRequest for username='{username}'", username=username)
-    return LnurlPayResponse.parse_obj(
+    return LnurlPayNostrResponse.parse_obj(
         dict(
             callback=str(settings.base_url() / f"lnurlp/{username}/callback"),
             minSendable=settings.min_sats_receivable * 1000,
             maxSendable=settings.max_sats_receivable * 1000,
             metadata=settings.metadata_for_payrequest(),
+            comment_allowed=MAX_COMMENT,
+            nostr_pubkey=settings.user_nostr_address_hex(),
+            allows_nostr=settings.supports_nostr_zaps(),
         )
     )
 
@@ -120,7 +137,7 @@ async def lnurl_pay_request_lud06(
     path="/.well-known/lnurlp/{username}",
     summary="payRequest LUD-16",
     operation_id="lnurlp-LUD16",
-    response_model=LnurlPayResponse,
+    response_model=LnurlPayNostrResponse,
     responses=DEFAULT_ERROR_RESPONSE_MODELS,
     response_model_exclude_none=True,
     response_model_exclude_unset=False,
@@ -135,7 +152,7 @@ async def lnurl_pay_request_lud16(
             regex=r"^[a-z0-9-_\.]+$",
         ),
     ],
-) -> LnurlPayResponse | JSONResponse:
+) -> LnurlPayNostrResponse | JSONResponse:
     """
     Implements [LUD-16](https://github.com/lnurl/luds/blob/luds/16.md) `payRequest`
     initial step, using human-readable `username@host` addresses.
@@ -149,12 +166,15 @@ async def lnurl_pay_request_lud16(
     username = settings.username
 
     logger.info("LUD-16 payRequest for username='{username}'", username=username)
-    return LnurlPayResponse.parse_obj(
+    return LnurlPayNostrResponse.parse_obj(
         dict(
             callback=str(settings.base_url() / f"lnurlp/{username}/callback"),
             minSendable=settings.min_sats_receivable * 1000,
             maxSendable=settings.max_sats_receivable * 1000,
             metadata=settings.metadata_for_payrequest(),
+            comment_allowed=MAX_COMMENT,
+            nostr_pubkey=settings.user_nostr_address_hex(),
+            allows_nostr=settings.supports_nostr_zaps(),
         )
     )
 
@@ -185,6 +205,19 @@ async def lnurl_pay_request_callback_lud06(
             examples=[1337000],
         ),
     ],
+    comment: Annotated[
+        str | None,
+        Query(
+            description="(Optional) sending wallet can provide a comment for this payment",
+            examples=["HFSP"],
+        ),
+    ] = None,
+    nostr: Annotated[
+        str | None,
+        Query(
+            description="(Optional) for Nostr zaps, provides kind `9734` Nostr event",
+        ),
+    ] = None,
 ) -> LnurlPayActionResponse | JSONResponse:
     settings: PhoenixdLNURLSettings = request.app.state.settings
     if username != settings.username:
@@ -193,15 +226,40 @@ async def lnurl_pay_request_callback_lud06(
             content=LnurlErrorResponse(reason="Unknown user").dict(),
         )
     username = settings.username
+    zap_request = None
+
+    if comment is not None:
+        logger.debug("Raw comment: '{comment}'", comment=comment)
+    if nostr is not None:
+        logger.debug("Raw nostr zapRequest {raw_nostr}", raw_nostr=nostr)
+        if settings.supports_nostr_zaps():
+            try:
+                zap_request = NostrZapRequest.parse_raw(nostr)
+            except ValidationError:
+                logger.warning(
+                    "Couldn't decode ?nostr= zap request parameter, ignoring"
+                )
+        else:
+            logger.debug(
+                (
+                    "No Nostr info configured for {user} so ignoring zap "
+                    "request and using plain LNURL"
+                ),
+                user=username,
+            )
 
     # TODO check compatibility of conversion to sats, some wallets
     # may not like the invoice amount not matching?
     amount_sat = math.ceil(amount / 1000)
     logger.info(
-        "LUD-06 payRequestCallback for username='{username}' sat={amount_sat} (mSat={amount})",
+        (
+            "LUD-06 payRequestCallback for username='{username}' "
+            "sat={amount_sat} (mSat={amount}) (nostr={is_nostr})"
+        ),
         username=username,
         amount_sat=amount_sat,
         amount=amount,
+        is_nostr="yes" if zap_request is not None else "no",
     )
 
     if amount_sat < settings.min_sats_receivable:
@@ -209,11 +267,8 @@ async def lnurl_pay_request_callback_lud06(
             "LUD-06 payRequestCallback with too-low amount {amount_sat} sats",
             amount_sat=amount_sat,
         )
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content=LnurlErrorResponse(
-                reason=f"Amount is too low, minimum is {settings.min_sats_receivable} sats"
-            ).dict(),
+        raise AppError(
+            f"Amount is too low, minimum is {settings.min_sats_receivable} sats"
         )
 
     if amount_sat > settings.max_sats_receivable:
@@ -221,18 +276,36 @@ async def lnurl_pay_request_callback_lud06(
             "LUD-06 payRequestCallback with too-high amount {amount_sat} sats",
             amount_sat=amount_sat,
         )
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content=LnurlErrorResponse(
-                reason=f"Amount is too high, maximum is {settings.max_sats_receivable} sats"
-            ).dict(),
+        raise AppError(
+            f"Amount is too high, maximum is {settings.max_sats_receivable} sats"
         )
+
+    if zap_request:
+        try:
+            zap_request.is_valid(
+                amount_msat=amount,
+                expected_nostr_pubkey=settings.user_nostr_address_hex(),
+            )
+        except ValueError as e:
+            # If we got something that looked like a Zap Request but couldn't
+            # handle it we return an error rather than continue with plain LNURL
+            raise AppError(f"Invalid NIP-57 Zap Request event: {e}") from e
+
+    invoice_description = (
+        zap_request.invoice_description() if zap_request else settings.metadata_hash()
+    )
+    # Passed to phoenixd as `externalId` so payments can be looked up against
+    # the Zap request's event ID or just LNURL
+    invoice_reference_id = (
+        f"zap-{zap_request.nostr_id}" if zap_request else f"lnurl-{invoice_description}"
+    )
+    # TODO save/log invoice_reference_ids?
 
     invoice: CreateInvoiceResponse = (
         await request.app.state.phoenixd_client.createinvoice(
             amount_sat=amount_sat,
-            description=settings.metadata_hash(),
-            external_id=settings.metadata_hash(),
+            description=invoice_description,
+            external_id=invoice_reference_id,
         )
     )
     return LnurlPayActionResponse.parse_obj(
@@ -247,14 +320,142 @@ async def lnurl_pay_request_callback_lud06(
     )
 
 
+@router.get(
+    path="/.well-known/nostr.json",
+    summary="NIP-5 Nostr Identifier",
+    operation_id="nostr-NIP5",
+    response_model=NostrNIP5Response,
+    responses=DEFAULT_ERROR_RESPONSE_MODELS,
+    response_model_exclude_none=True,
+    response_model_exclude_unset=False,
+)
+async def nostr_nip5_request(request: Request) -> NostrNIP5Response:
+    settings: PhoenixdLNURLSettings = request.app.state.settings
+    if not settings.user_nostr_address:
+        raise StarletteHTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Not found"
+        )
+    nostr_address_hex = settings.user_nostr_address_hex()
+    nostr_relays = settings.nostr_relays
+    if nostr_address_hex is None or not nostr_relays:
+        raise StarletteHTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Not found"
+        )
+    return NostrNIP5Response(
+        names={settings.username: nostr_address_hex},
+        relays={nostr_address_hex: nostr_relays},
+    )
+
+
+@router.post(
+    path="/phoenixd-webhook",
+    summary="INTERNAL - Handler for phoenixd webhook notifications",
+    operation_id="phoenixd-webhook",
+)
+async def phoenixd_webhook_handler(
+    request: Request,
+    hook: PhoenixdWebsocketNotification,
+    background_tasks: BackgroundTasks,
+) -> JSONResponse:
+    settings: PhoenixdLNURLSettings = request.app.state.settings
+    session: aiohttp.ClientSession = request.app.state.client_session
+    logger.debug("Webhook from phoenixd: {hook}", hook=hook)
+
+    if hook.external_id and not hook.external_id.startswith("zap"):
+        # We only need to handle paid Zaps, ignore everything else
+        return JSONResponse(content={"status": "ok"})
+
+    if (
+        nostr_pubkey := settings.user_nostr_address_hex()
+    ) is None or not settings.supports_nostr_zaps():
+        # Should never happen, in theory 😉
+        raise ValueError("Cannot handle zaps without nostr support")
+
+    # Get the invoice from phoenixd
+    paid_invoice: IncomingPaymentResponse = (
+        await request.app.state.phoenixd_client.incoming_payment_hash(
+            payment_hash=hook.payment_hash
+        )
+    )
+    if not paid_invoice.is_paid:
+        # Should never happen, in theory 😉
+        return JSONResponse(content={"status": "ok"})
+
+    # We smuggled the original Zap Request in the invoice's description, so parse it out
+    original_zap_request = NostrZapRequest.parse_raw(paid_invoice.description or "")
+    logger.debug("Parsed zap request: {zap}", zap=original_zap_request)
+
+    zap_receipt = NostrZapReceipt.from_zap_request(
+        zap_request=original_zap_request,
+        paid_invoice=paid_invoice,
+        nostr_pubkey=nostr_pubkey,
+        nostr_private_key=settings.nostr_private_key(),
+    )
+    logger.debug("Created zap receipt: {receipt}", receipt=zap_receipt)
+
+    # Send the Zap Receipt to the requester's specified relays
+    receipt_relays = original_zap_request.receipt_relays()
+
+    # Publish the Zap receipt event as a background task
+    if not settings.is_test:
+        background_tasks.add_task(
+            background_nostr_publish,
+            session,
+            zap_receipt,
+            receipt_relays,
+        )
+    return JSONResponse(
+        content={
+            "status": "ok",
+            "receipt": zap_receipt.dict(by_alias=True, exclude_unset=False),
+        }
+    )
+
+
+async def background_nostr_publish(
+    session: aiohttp.ClientSession,
+    event: NostrZapReceipt,
+    relays: list[str],
+):
+    payload = [
+        "EVENT",
+        event.dict(
+            by_alias=True,
+            exclude_unset=False,
+            exclude_none=True,
+        ),
+    ]
+    # TODO be less dumb with websocket handling
+    for relay_url in relays:
+        try:
+            async with session.ws_connect(relay_url, timeout=5) as ws:
+                logger.info("Connect {relay_url}", relay_url=relay_url)
+                await ws.send_json(data=payload)
+                async for msg in ws:
+                    logger.debug(msg.data)
+                    if msg.type == aiohttp.WSMsgType.TEXT:
+                        response = json.loads(msg.data)
+                        logger.info(
+                            "Response from {relay_url}: {resp}",
+                            relay_url=relay_url,
+                            resp=response,
+                        )
+                    break
+        except aiohttp.ClientError as e:
+            logger.warning(e)
+    logger.info("Zap receipt published")
+
+
 async def base_exception_handler(
     request: Request,
     exc: Exception,
     status_code: int = 400,
     include_detail: bool = False,
 ) -> JSONResponse:
-    if include_detail:
-        reason = f"{exc.__class__.__name__} {str(exc)}"
+    if include_detail and request.app.state.settings.debug:
+        reason = f"<{exc.__class__.__name__}>: {str(exc)}"
+    elif include_detail:
+        reason = str(exc).strip() or "Error"
     else:
         reason = "Internal Server Error"
     return JSONResponse(
@@ -266,20 +467,47 @@ async def base_exception_handler(
 def register_exception_handlers(app: FastAPI):
     @app.exception_handler(RequestValidationError)
     async def request_validation_handler(
-        request: Request, exc: Exception
+        request: Request, exc: RequestValidationError
     ) -> JSONResponse:
         return await base_exception_handler(request, exc, include_detail=True)
 
-    @app.exception_handler(StarletteHTTPException)
-    async def http_handler(request: Request, exc: Exception) -> JSONResponse:
-        return await base_exception_handler(request, exc, include_detail=True)
-
-    @app.exception_handler(TimeoutError)
-    async def timeout_handler(request: Request, exc: Exception) -> JSONResponse:
+    @app.exception_handler(ValidationError)
+    async def model_validation_handler(
+        request: Request, exc: ValidationError
+    ) -> JSONResponse:
         return await base_exception_handler(
             request,
             exc,
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            include_detail=True,
+        )
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_handler(
+        request: Request, exc: StarletteHTTPException
+    ) -> JSONResponse:
+        return await base_exception_handler(
+            request,
+            exc,
+            status_code=exc.status_code,
+            include_detail=True,
+        )
+
+    @app.exception_handler(AppError)
+    async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+        return await base_exception_handler(
+            request,
+            exc,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            include_detail=True,
+        )
+
+    @app.exception_handler(TimeoutError)
+    async def timeout_handler(request: Request, exc: TimeoutError) -> JSONResponse:
+        return await base_exception_handler(
+            request,
+            exc,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             include_detail=request.app.debug,
         )
 
@@ -288,7 +516,7 @@ def register_exception_handlers(app: FastAPI):
         return await base_exception_handler(
             request,
             exc,
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             include_detail=request.app.debug,
         )
 
@@ -300,7 +528,10 @@ def configure_logging(loglevel: str = "INFO"):
         sys.stdout,
         colorize=True,
         level=loglevel,
-        format="<fg #FF9900>{time:%Y-%m-%d:%H:%m:%S}</fg #FF9900>  <level>{level:9}  {message}</level>",
+        format=(
+            "<fg #FF9900>{time:%Y-%m-%d:%H:%m:%S}</fg #FF9900>  "
+            "<level>{level:9}  {message}</level>"
+        ),
     )
 
 
@@ -345,14 +576,20 @@ def app_factory() -> FastAPI:
         version="0.1.0",
         license_info={
             "name": "BSD-2-Clause",
-            "url": "https://raw.githubusercontent.com/AngusP/phoenixd-lnurl/master/LICENSE.BSD-2-Clause",
+            "url": (
+                "https://raw.githubusercontent.com/AngusP/phoenixd-lnurl/"
+                "master/LICENSE.BSD-2-Clause"
+            ),
         },
         lifespan=lifespan_context,
         logger=logger,
     )
     app.state.settings = settings
     app.add_middleware(
-        CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
     app.include_router(router)
     register_exception_handlers(app)

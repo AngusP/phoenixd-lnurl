@@ -24,11 +24,14 @@ select = [
     "I",
 ]
 ignore = [
-    # line-too-long
+    # "line-too-long"
     # We're using `ruff` to format the code, so iff the formatter
     # can't get the line length low enough we'll assume it reads better
     # as a long line rather than broken up
     "E501",
+    # "Use a single if statement"
+    # Doesn't recognise walrus operator assignment
+    "SIM102",
 ]
 fixable = ["ALL"]
 
