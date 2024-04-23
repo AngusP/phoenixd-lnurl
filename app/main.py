@@ -452,6 +452,7 @@ async def base_exception_handler(
     status_code: int = 400,
     include_detail: bool = False,
 ) -> JSONResponse:
+    logger.exception(exc)
     if include_detail and request.app.state.settings.debug:
         reason = f"<{exc.__class__.__name__}>: {str(exc)}"
     elif include_detail:
@@ -521,7 +522,7 @@ def register_exception_handlers(app: FastAPI):
         )
 
 
-def configure_logging(loglevel: str = "INFO"):
+def configure_logging(loglevel: str = "INFO", backtrace: bool = False):
     logger.remove()
     intercept_logging()
     logger.add(
@@ -532,6 +533,8 @@ def configure_logging(loglevel: str = "INFO"):
             "<fg #FF9900>{time:%Y-%m-%d:%H:%m:%S}</fg #FF9900>  "
             "<level>{level:9}  {message}</level>"
         ),
+        backtrace=backtrace,
+        diagnose=backtrace,
     )
 
 
@@ -541,7 +544,7 @@ def app_factory() -> FastAPI:
     if settings.is_test:
         settings = PhoenixdLNURLSettings(_env_file="test.env")  # type: ignore
 
-    configure_logging(settings.log_level)
+    configure_logging(settings.log_level, settings.debug)
     logger.debug("Loaded settings: {settings}", settings=settings)
 
     if not settings.debug:
