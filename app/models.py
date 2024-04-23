@@ -37,7 +37,7 @@ class LnurlPayNostrResponse(LnurlResponseModel):
     metadata: LnurlPayMetadata
 
     comment_allowed: int | None = Field(None, alias="commentAllowed", ge=1)
-    allows_nostr: Literal[True] | None = Field(None, alias="allowsNostr")
+    allows_nostr: bool | None = Field(None, alias="allowsNostr")
     nostr_pubkey: str | None = Field(None, alias="nostrPubkey")
 
     @validator("max_sendable")
