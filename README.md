@@ -4,7 +4,7 @@
 
 **🚧 NOTE This is new software, loss of funds and other mishaps are likely 🚧**
 
-A simple wrapper for [ACINQ/phoenixd](https://github.com/ACINQ/phoenixd) that supports basic [LNURL](https://github.com/lnurl/luds) so you can self-host your lightning address with near-minimum effort 💯.
+A simple wrapper for [ACINQ/phoenixd](https://github.com/ACINQ/phoenixd) that supports basic [LNURL](https://github.com/lnurl/luds) and Nostr Zaps so you can self-host your lightning address with near-minimum effort 💯.
 
 Supports **one** user with a human-readable LNURL like `lightning:satoshi@gmx.com`, as well as LNURL LUD-06 (the long Bech encoded `lightning:LNURL1blahblah` kind) *and* a snazzy [tip webpage at `/lnurl`](https://1f52b.xyz/lnurl):
 
@@ -47,6 +47,7 @@ Each of the settings in [`phoenixd-lnurl.env`](./phoenixd-lnurl.env.example) can
 As you'll also need to run phoenixd and some sort of webserver, so using **Docker compose** is likely easiest way to get all of the required pieces running: [./examples/docker-compose.yml](./examples/docker-compose.yml):
 
 ```shell
+# NOTE you'll need to change the config in docker-compose.yml for this to work properly!
 docker-compose -f examples/docker-compose.yml up
 ```
 
@@ -69,10 +70,12 @@ docker run -p 8000:8000 \
     -it phoenixd-lnurl:latest
 ```
 
+### URLs:
+
  * `localhost:8000/lnurl` Tip webpage as in the screenshot above
  * `localhost:8000/.well-known/lnurlp/<USERNAME>` LNURL payRequest endpoint (LUD-16) for `<USERNAME>@<LNURL_HOSTNAME>`
  * `localhost:8000/lnurlp/<USERNAME>` LNURL payRequest endpoint (LUD-06)
- * `localhost:8000/lnurlp/<USERNAME>/callback?amount=<AMOUNT_MSAT>` LNURL payRequest callback (LUD-06 and LUD-16)
+ * `localhost:8000/lnurlp/<USERNAME>/callback?amount=<AMOUNT_MSAT>` LNURL payRequest callback (LUD-06 and LUD-16, NIP-57)
  * `localhost:8000/.well-known/nostr.json` (Optional) Nostr NIP-5 server for `<USERNAME>@<LNURL_HOSTNAME>`
  * **⚠️ INTERNAL ONLY** `localhost:8000/phoenixd-webhook` -- you need to add this to your `~/.phoenixd/phoenix.conf` for Nostr Zaps to work correctly. ‼️ DO NOT make this publicly accessible ‼️
  * **Note** `localhost:8000/` and any other path will give you an `ERROR` -- that's supposed to happen, as it isn't a LNURL that **pheonixd-lnurl** understands 😉
@@ -126,10 +129,12 @@ Now you're ready to run:
 ./run.sh
 ```
 
+### URLs:
+
  * `localhost:8000/lnurl` Tip webpage as in the screenshot above
  * `localhost:8000/.well-known/lnurlp/<USERNAME>` LNURL payRequest endpoint (LUD-16) for `<USERNAME>@<LNURL_HOSTNAME>`
  * `localhost:8000/lnurlp/<USERNAME>` LNURL payRequest endpoint (LUD-06)
- * `localhost:8000/lnurlp/<USERNAME>/callback?amount=<AMOUNT_MSAT>` LNURL payRequest callback (LUD-06 and LUD-16)
+ * `localhost:8000/lnurlp/<USERNAME>/callback?amount=<AMOUNT_MSAT>` LNURL payRequest callback (LUD-06 and LUD-16, NIP-57)
  * `localhost:8000/.well-known/nostr.json` (Optional) Nostr NIP-5 server for `<USERNAME>@<LNURL_HOSTNAME>`
  * **⚠️ INTERNAL ONLY** `localhost:8000/phoenixd-webhook` -- you need to add this to your `~/.phoenixd/phoenix.conf` for Nostr Zaps to work correctly. ‼️ DO NOT make this publicly accessible ‼️
  * **Note** `localhost:8000/` and any other path will give you an `ERROR` -- that's supposed to happen, as it isn't a LNURL that **pheonixd-lnurl** understands 😉
@@ -197,9 +202,9 @@ just serve
 - [ ] Support `.onion` hosting (HTTPS is assumed in a few places), needed for self-hosting on things like Umbrel
 - [ ] Support [LUD-18: Payer identity in `payRequest` protocol](https://github.com/lnurl/luds/blob/luds/18.md)
 - [ ] Support configurable URL prefix for the app for people that might have collisions or don't want to host at `/` (or do this in nginx conf)
-- [ ] Support actual Nostr Zaps [NIP-57: Lightning Zaps](https://github.com/nostr-protocol/nips/blob/master/57.md)
+- [X] Support actual Nostr Zaps [NIP-57: Lightning Zaps](https://github.com/nostr-protocol/nips/blob/master/57.md)
 - [ ] Support [NIP-47: Nostr Wallet Connect](https://github.com/nostr-protocol/nips/blob/master/47.md)
-
+- [ ] Add optional auth on Phoenixd webhook endpoint
 
 ### Later Roadmap
 

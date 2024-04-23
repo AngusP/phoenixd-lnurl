@@ -2,6 +2,17 @@ FROM python:3.12-alpine
 
 WORKDIR /var/phoenixd_lnurl
 
+RUN \
+    apk update && \
+    apk add \
+        # secp256k1 requirements
+        automake \
+        build-base \
+        libffi-dev \
+        libtool \
+        pkgconfig \
+    ;
+
 COPY ./requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

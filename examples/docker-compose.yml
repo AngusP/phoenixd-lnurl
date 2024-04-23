@@ -41,7 +41,7 @@ services:
     labels:
       # CHANGEME set `Host(...)` to match your domain, or to `localhost` for testing:
       - "traefik.enable=true"
-      - "traefik.http.routers.phoenixd-lnurl.rule=Host(`example.com`) && Path(`/lnurl`) || Host(`example.com`) && PathPrefix(`/lnurlp`) || Host(`example.com`) && PathPrefix(`/.well-known/lnurlp`)"
+      - "traefik.http.routers.phoenixd-lnurl.rule=Host(`example.com`) && Path(`/lnurl`) || Host(`example.com`) && PathPrefix(`/lnurlp`) || Host(`example.com`) && PathPrefix(`/.well-known/lnurlp`) && PathPrefix(`/.well-known/nostr.json`)"
       - "traefik.http.services.phoenixd-lnurl.loadbalancer.server.port=8000"
       - "traefik.http.routers.phoenixd-lnurl.entrypoints=websecure"
       - "traefik.http.routers.phoenixd-lnurl.tls.certresolver=selfhostedservices"
