@@ -1,5 +1,7 @@
 # LNURL for phoenixd ⚡️
 
+👾 Also available on the P2P Git forge, [Radicle](https://radicle.xyz) at `rad:z4G6sJdYgCqKswKnrBbYgn9QaHBqh`
+
 **🚧 NOTE This is new software, loss of funds and other mishaps are likely 🚧**
 
 A simple wrapper for [ACINQ/phoenixd](https://github.com/ACINQ/phoenixd) that supports basic [LNURL](https://github.com/lnurl/luds) so you can self-host your lightning address with near-minimum effort 💯.
