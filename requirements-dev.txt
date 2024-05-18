@@ -4,7 +4,7 @@
 #
 #    pip-compile --strip-extras requirements-dev.in
 #
-aiohttp==3.9.3
+aiohttp==3.9.4
     # via
     #   -c requirements.txt
     #   -r requirements.in
@@ -34,6 +34,10 @@ certifi==2024.2.2
     #   httpcore
     #   httpx
     #   requests
+cffi==1.16.0
+    # via
+    #   -c requirements.txt
+    #   secp256k1
 charset-normalizer==3.3.2
     # via
     #   -c requirements.txt
@@ -42,6 +46,8 @@ click==8.1.7
     # via
     #   -c requirements.txt
     #   uvicorn
+coverage==7.4.4
+    # via pytest-cov
 decorator==5.1.1
     # via ipython
 dnspython==2.6.1
@@ -85,7 +91,7 @@ httpx==0.27.0
     #   -c requirements.txt
     #   -r requirements-dev.in
     #   fastapi
-idna==3.6
+idna==3.7
     # via
     #   -c requirements.txt
     #   anyio
@@ -120,7 +126,7 @@ markupsafe==2.1.5
     # via
     #   -c requirements.txt
     #   jinja2
-matplotlib-inline==0.1.6
+matplotlib-inline==0.1.7
     # via ipython
 multidict==6.0.5
     # via
@@ -140,7 +146,7 @@ packaging==24.0
     #   -c requirements.txt
     #   gunicorn
     #   pytest
-parso==0.8.3
+parso==0.8.4
     # via jedi
 pexpect==4.9.0
     # via ipython
@@ -156,6 +162,10 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
     # via stack-data
+pycparser==2.22
+    # via
+    #   -c requirements.txt
+    #   cffi
 pydantic==1.10.14
     # via
     #   -c requirements.txt
@@ -172,7 +182,10 @@ pytest==8.1.1
     # via
     #   -r requirements-dev.in
     #   pytest-asyncio
+    #   pytest-cov
 pytest-asyncio==0.23.6
+    # via -r requirements-dev.in
+pytest-cov==5.0.0
     # via -r requirements-dev.in
 python-dotenv==1.0.1
     # via
@@ -196,8 +209,12 @@ requests==2.31.0
     # via
     #   -c requirements.txt
     #   lnurl
-ruff==0.3.5
+ruff==0.3.7
     # via -r requirements-dev.in
+secp256k1==0.14.0
+    # via
+    #   -c requirements.txt
+    #   -r requirements.in
 six==1.16.0
     # via asttokens
 sniffio==1.3.1
@@ -215,9 +232,9 @@ traitlets==5.14.2
     # via
     #   ipython
     #   matplotlib-inline
-types-qrcode==7.4.0.20240106
+types-qrcode==7.4.0.20240408
     # via -r requirements-dev.in
-typing-extensions==4.10.0
+typing-extensions==4.11.0
     # via
     #   -c requirements.txt
     #   fastapi

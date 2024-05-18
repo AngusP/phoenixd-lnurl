@@ -42,7 +42,7 @@ lint:
 
 # Run python tests
 pytest *pytest_args="-vx":
-    IS_TEST=1 pytest {{pytest_args}}
+    IS_TEST=1 pytest --cov=app --cov-report html {{pytest_args}}
 
 # Run python type checking
 mypy *files=".":
