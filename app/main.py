@@ -291,9 +291,12 @@ async def lnurl_pay_request_callback_lud06(
             # handle it we return an error rather than continue with plain LNURL
             raise AppError(f"Invalid NIP-57 Zap Request event: {e}") from e
 
-    invoice_description = (
-        zap_request.invoice_description() if zap_request else settings.metadata_hash()
-    )
+    invoice_description, invoice_description_hash = None, None
+    if zap_request:
+        invoice_description_hash = zap_request.invoice_description_hash()
+    else:
+        invoice_description = settings.metadata_hash()
+
     # Passed to phoenixd as `externalId` so payments can be looked up against
     # the Zap request's event ID or just LNURL
     invoice_reference_id = (
@@ -301,12 +304,13 @@ async def lnurl_pay_request_callback_lud06(
     )
     # TODO save/log invoice_reference_ids?
 
-    invoice: CreateInvoiceResponse = (
-        await request.app.state.phoenixd_client.createinvoice(
-            amount_sat=amount_sat,
-            description=invoice_description,
-            external_id=invoice_reference_id,
-        )
+    phoenixd_client: PhoenixdHttpClient = request.app.state.phoenixd_client
+
+    invoice: CreateInvoiceResponse = await phoenixd_client.createinvoice(
+        amount_sat=amount_sat,
+        description=invoice_description,
+        description_hash=invoice_description_hash,
+        external_id=invoice_reference_id,
     )
     return LnurlPayActionResponse.parse_obj(
         dict(
@@ -381,7 +385,7 @@ async def phoenixd_webhook_handler(
         # Should never happen, in theory 😉
         return JSONResponse(content={"status": "ok"})
 
-    # We smuggled the original Zap Request in the invoice's description, so parse it out
+    # TODO(angus) when using description hash, there is no description!
     original_zap_request = NostrZapRequest.parse_raw(paid_invoice.description or "")
     logger.debug("Parsed zap request: {zap}", zap=original_zap_request)
 
@@ -593,6 +597,7 @@ def app_factory() -> FastAPI:
         allow_origins=["*"],
         allow_methods=["*"],
         allow_headers=["*"],
+        allow_credentials=True,
     )
     app.include_router(router)
     register_exception_handlers(app)

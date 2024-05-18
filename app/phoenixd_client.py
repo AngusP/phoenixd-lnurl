@@ -3,17 +3,21 @@ from abc import (
     abstractmethod,
 )
 from datetime import datetime
+from typing import Any
 
 import aiohttp
 from loguru import logger
 from pydantic import (
     BaseModel,
+    Extra,
     Field,
 )
 from yarl import URL
 
+MAX_DESCRIPTION = 128
 
-class ChannelInfo(BaseModel):
+
+class ChannelInfo(BaseModel, extra=Extra.ignore):
     state: str
     channel_id: str = Field(alias="channelId")
     balance_dat: int = Field(alias="balanceSat", ge=0)
@@ -22,29 +26,29 @@ class ChannelInfo(BaseModel):
     funding_tx_id: str = Field(alias="fundingTxId")
 
 
-class GetInfoResponse(BaseModel):
+class GetInfoResponse(BaseModel, extra=Extra.ignore):
     node_id: str = Field(alias="nodeId")
     channels: list[ChannelInfo]
     chain: str
     version: str
 
 
-class GetBalanceResponse(BaseModel):
+class GetBalanceResponse(BaseModel, extra=Extra.ignore):
     balance_sat: int = Field(alias="balanceSat", ge=0)
     fee_credit_sat: int = Field(alias="feeCreditSat", ge=0)
 
 
-class ListChannelsResponse(BaseModel):
+class ListChannelsResponse(BaseModel, extra=Extra.ignore):
     channels: list[dict]
 
 
-class CreateInvoiceResponse(BaseModel):
+class CreateInvoiceResponse(BaseModel, extra=Extra.ignore):
     amount_sat: int = Field(alias="amountSat", ge=0)
     payment_hash: str = Field(alias="paymentHash")
     serialized: str
 
 
-class IncomingPaymentResponse(BaseModel):
+class IncomingPaymentResponse(BaseModel, extra=Extra.ignore):
     payment_hash: str = Field(alias="paymentHash")
     preimage: str
     invoice: str
@@ -81,7 +85,8 @@ class PhoenixdClientBase(ABC):
         self,
         *,
         amount_sat: int,
-        description: str,
+        description: str | None,
+        description_hash: str | None = None,
         external_id: str | None = None,
     ) -> CreateInvoiceResponse: ...
 
@@ -156,15 +161,18 @@ class PhoenixdHttpClient(PhoenixdClientBase):
         self,
         *,
         amount_sat: int,
-        description: str,
+        description: str | None,
+        description_hash: str | None = None,
         external_id: str | None = None,
     ) -> CreateInvoiceResponse:
-        form_data = {
+        form_data: dict[str, Any] = {
             "amountSat": amount_sat,
-            "description": description,
         }
+        description_for_form(form_data, description, description_hash)
+
         if external_id is not None:
             form_data["externalId"] = external_id
+
         async with self.session.post(
             self.baseurl / "createinvoice",
             data=form_data,
@@ -256,9 +264,12 @@ class PhoenixdMockClient(PhoenixdClientBase):
         self,
         *,
         amount_sat: int,
-        description: str,
+        description: str | None,
+        description_hash: str | None = None,
         external_id: str | None = None,
     ) -> CreateInvoiceResponse:
+        form_data: dict[str, str] = dict()
+        description_for_form(form_data, description, description_hash)
         invoice = CreateInvoiceResponse.parse_obj(
             {
                 "amountSat": amount_sat,
@@ -352,3 +363,29 @@ class PhoenixdMockClient(PhoenixdClientBase):
 
     async def payments_websocket(self):
         raise NotImplementedError()
+
+
+def description_for_form(
+    form_data: dict[str, str],
+    description: str | None,
+    description_hash: str | None,
+):
+    if description_hash:
+        if len(description_hash) != 64:
+            raise ValueError("`description_hash` must be SHA256 hexdigest (64 char)")
+        try:
+            _ = bytes.fromhex(description_hash)
+        except ValueError as e:
+            raise ValueError(
+                "`description_hash` must be a valid SHA256 hexdigest (0-9a-f)"
+            ) from e
+        form_data["descriptionHash"] = description_hash
+    elif description:
+        if len(description.encode("utf-8")) > MAX_DESCRIPTION:
+            # Maximum length of a BOLT-11 invoice description is 637 chars,
+            # additionally Phoenixd imposes a lower 128 char limit.
+            raise ValueError(f"Description is too long, max {MAX_DESCRIPTION} chars")
+        else:
+            form_data["description"] = description
+    else:
+        raise ValueError("One of `description` or `description_hash` must be set")

@@ -190,6 +190,9 @@ class NostrZapRequest(BaseModel):
             separators=(",", ":"),
         )
 
+    def invoice_description_hash(self) -> str:
+        return sha256(self.invoice_description().encode("utf-8")).hexdigest()
+
 
 class NostrZapReceipt(BaseModel):
     kind: Literal[9735] = 9735

@@ -1,6 +1,6 @@
 # LNURL for phoenixd ⚡️
 
-👾 Also available on the P2P Git forge, [Radicle](https://radicle.xyz) at `rad:z4G6sJdYgCqKswKnrBbYgn9QaHBqh`
+👾 Also available on the P2P Git forge, [Radicle](https://app.radicle.xyz/nodes/seed.radicle.garden/rad:z4G6sJdYgCqKswKnrBbYgn9QaHBqh) at `rad:z4G6sJdYgCqKswKnrBbYgn9QaHBqh`
 
 **🚧 NOTE This is new software, loss of funds and other mishaps are likely 🚧**
 
@@ -20,7 +20,9 @@ Note that LNBits will support phoenixd [soon™️](https://github.com/lnbits/ln
 
 ## Compatibility
 
-Developed against `phoenixd version 0.1.4-04bd430` (and `0.1.3-d805f81`); also note that phoenixd is also new software and future releases may break things.
+Developed against [`phoenixd version 0.1.5-6845a31`](https://github.com/ACINQ/phoenixd/releases/tag/v0.1.5); also note that phoenixd is also new software and future releases may break things.
+
+Versions of Phoenixd before `0.1.5` can be used for LNURL, but Nostr zaps won't work as description-hash invoices [added in 0.1.5](https://github.com/ACINQ/phoenixd/pull/50) are needed.
 
 Currently tested on MacOS and Linux; YMMV on other UNIXes, and on Windows.
 
