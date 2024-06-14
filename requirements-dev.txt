@@ -4,7 +4,7 @@
 #
 #    pip-compile --strip-extras requirements-dev.in
 #
-aiohttp==3.9.3
+aiohttp==3.9.5
     # via
     #   -c requirements.txt
     #   -r requirements.in
@@ -12,7 +12,7 @@ aiosignal==1.3.1
     # via
     #   -c requirements.txt
     #   aiohttp
-anyio==4.3.0
+anyio==4.4.0
     # via
     #   -c requirements.txt
     #   httpx
@@ -24,23 +24,40 @@ attrs==23.2.0
     # via
     #   -c requirements.txt
     #   aiohttp
+base58==2.1.1
+    # via
+    #   -c requirements.txt
+    #   bolt11
 bech32==1.2.0
     # via
     #   -c requirements.txt
+    #   bolt11
     #   lnurl
-certifi==2024.2.2
+bitarray==2.9.2
+    # via
+    #   -c requirements.txt
+    #   bitstring
+bitstring==4.2.3
+    # via
+    #   -c requirements.txt
+    #   bolt11
+bolt11==2.0.6
+    # via
+    #   -c requirements.txt
+    #   lnurl
+certifi==2024.6.2
     # via
     #   -c requirements.txt
     #   httpcore
     #   httpx
-    #   requests
-charset-normalizer==3.3.2
+cffi==1.16.0
     # via
     #   -c requirements.txt
-    #   requests
+    #   secp256k1
 click==8.1.7
     # via
     #   -c requirements.txt
+    #   bolt11
     #   uvicorn
 decorator==5.1.1
     # via ipython
@@ -48,6 +65,11 @@ dnspython==2.6.1
     # via
     #   -c requirements.txt
     #   email-validator
+ecdsa==0.19.0
+    # via
+    #   -c requirements.txt
+    #   bolt11
+    #   lnurl
 email-validator==2.1.1
     # via
     #   -c requirements.txt
@@ -63,7 +85,7 @@ frozenlist==1.4.1
     #   -c requirements.txt
     #   aiohttp
     #   aiosignal
-gunicorn==21.2.0
+gunicorn==22.0.0
     # via
     #   -c requirements.txt
     #   -r requirements.in
@@ -85,30 +107,30 @@ httpx==0.27.0
     #   -c requirements.txt
     #   -r requirements-dev.in
     #   fastapi
-idna==3.6
+    #   lnurl
+idna==3.7
     # via
     #   -c requirements.txt
     #   anyio
     #   email-validator
     #   httpx
-    #   requests
     #   yarl
 iniconfig==2.0.0
     # via pytest
-ipython==8.23.0
+ipython==8.25.0
     # via -r requirements-dev.in
-itsdangerous==2.1.2
+itsdangerous==2.2.0
     # via
     #   -c requirements.txt
     #   fastapi
 jedi==0.19.1
     # via ipython
-jinja2==3.1.3
+jinja2==3.1.4
     # via
     #   -c requirements.txt
     #   -r requirements.in
     #   fastapi
-lnurl==0.4.2
+lnurl==0.5.1
     # via
     #   -c requirements.txt
     #   -r requirements.in
@@ -120,27 +142,27 @@ markupsafe==2.1.5
     # via
     #   -c requirements.txt
     #   jinja2
-matplotlib-inline==0.1.6
+matplotlib-inline==0.1.7
     # via ipython
 multidict==6.0.5
     # via
     #   -c requirements.txt
     #   aiohttp
     #   yarl
-mypy==1.9.0
+mypy==1.10.0
     # via -r requirements-dev.in
 mypy-extensions==1.0.0
     # via mypy
-orjson==3.10.0
+orjson==3.10.5
     # via
     #   -c requirements.txt
     #   fastapi
-packaging==24.0
+packaging==24.1
     # via
     #   -c requirements.txt
     #   gunicorn
     #   pytest
-parso==0.8.3
+parso==0.8.4
     # via jedi
 pexpect==4.9.0
     # via ipython
@@ -148,31 +170,35 @@ pillow==10.3.0
     # via
     #   -c requirements.txt
     #   qrcode
-pluggy==1.4.0
+pluggy==1.5.0
     # via pytest
-prompt-toolkit==3.0.43
+prompt-toolkit==3.0.47
     # via ipython
 ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
     # via stack-data
+pycparser==2.22
+    # via
+    #   -c requirements.txt
+    #   cffi
 pydantic==1.10.14
     # via
     #   -c requirements.txt
     #   -r requirements.in
     #   fastapi
     #   lnurl
-pygments==2.17.2
+pygments==2.18.0
     # via ipython
 pypng==0.20220715.0
     # via
     #   -c requirements.txt
     #   qrcode
-pytest==8.1.1
+pytest==8.2.2
     # via
     #   -r requirements-dev.in
     #   pytest-asyncio
-pytest-asyncio==0.23.6
+pytest-asyncio==0.23.7
     # via -r requirements-dev.in
 python-dotenv==1.0.1
     # via
@@ -192,14 +218,17 @@ qrcode==7.4.2
     # via
     #   -c requirements.txt
     #   -r requirements.in
-requests==2.31.0
+ruff==0.4.9
+    # via -r requirements-dev.in
+secp256k1==0.14.0
     # via
     #   -c requirements.txt
-    #   lnurl
-ruff==0.3.5
-    # via -r requirements-dev.in
+    #   bolt11
 six==1.16.0
-    # via asttokens
+    # via
+    #   -c requirements.txt
+    #   asttokens
+    #   ecdsa
 sniffio==1.3.1
     # via
     #   -c requirements.txt
@@ -211,28 +240,24 @@ starlette==0.27.0
     # via
     #   -c requirements.txt
     #   fastapi
-traitlets==5.14.2
+traitlets==5.14.3
     # via
     #   ipython
     #   matplotlib-inline
-types-qrcode==7.4.0.20240106
+types-qrcode==7.4.0.20240408
     # via -r requirements-dev.in
-typing-extensions==4.10.0
+typing-extensions==4.12.2
     # via
     #   -c requirements.txt
     #   fastapi
     #   mypy
     #   pydantic
     #   qrcode
-ujson==5.9.0
+ujson==5.10.0
     # via
     #   -c requirements.txt
     #   fastapi
-urllib3==2.2.1
-    # via
-    #   -c requirements.txt
-    #   requests
-uvicorn==0.29.0
+uvicorn==0.30.1
     # via
     #   -c requirements.txt
     #   -r requirements.in
@@ -241,7 +266,7 @@ uvloop==0.19.0
     # via
     #   -c requirements.txt
     #   uvicorn
-watchfiles==0.21.0
+watchfiles==0.22.0
     # via
     #   -c requirements.txt
     #   uvicorn

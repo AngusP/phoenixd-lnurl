@@ -50,7 +50,8 @@ class PhoenixdLNURLSettings(BaseSettings):
 
     def lnurl_qr(self) -> str:
         lnurl_qr = QRCode(
-            image_factory=qrcode.image.svg.SvgPathFillImage,
+            # NOTE mypy unhappy with passing this class but seems correct
+            image_factory=qrcode.image.svg.SvgPathFillImage,  # type: ignore
             box_size=15,
         )
         lnurl_qr.add_data(self.lnurl_address_encoded())
