@@ -24,8 +24,8 @@ from lnurl import (
     LnurlPayActionResponse,
     LnurlPayResponse,
 )
-from lnurl.types import MilliSatoshi
 from loguru import logger
+from pydantic import PositiveInt
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .phoenixd_client import (
@@ -179,7 +179,7 @@ async def lnurl_pay_request_callback_lud06(
         ),
     ],
     amount: Annotated[
-        MilliSatoshi,
+        PositiveInt,
         Query(
             description="amount to pay, in millisatoshis (mSat)",
             examples=[1337000],
